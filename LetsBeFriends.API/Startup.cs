@@ -1,8 +1,10 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text;
 using System.Threading.Tasks;
 using LetsBeFriends.API.Data;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc;
@@ -11,6 +13,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
+using Microsoft.IdentityModel.Tokens;
 
 namespace LetsBeFriends.API
 {
@@ -30,6 +33,23 @@ namespace LetsBeFriends.API
             services.AddMvc().SetCompatibilityVersion(CompatibilityVersion.Version_2_1);
             //Enable Cross-Origin Requests (CORS)
             services.AddCors();
+            /*
+            AddScoped = The service is created once per request within the request and it's equivalent to singleton but in 
+            the current scope itself for example it creates one instance for each HTTP request but it uses the same instance
+            of a cause within the same web request it's suitable for load or for repository that we are creating here.
+            */
+            services.AddScoped<IAuthRepository,AuthRepository>();
+            services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
+                .AddJwtBearer(options => { 
+                     options.TokenValidationParameters = new TokenValidationParameters
+                     {
+                         ValidateIssuerSigningKey = true,
+                         IssuerSigningKey = new SymmetricSecurityKey(Encoding.ASCII
+                         .GetBytes(Configuration.GetSection("AppSettings:Token").Value)),
+                         ValidateIssuer = false,
+                         ValidateAudience = false
+                     };
+                });
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
@@ -41,6 +61,7 @@ namespace LetsBeFriends.API
             }
             //Enable Cross-Origin Requests (CORS)
             app.UseCors(x => x.AllowAnyOrigin().AllowAnyMethod().AllowAnyHeader());
+            app.UseAuthentication();
             app.UseMvc();
         }
     }
